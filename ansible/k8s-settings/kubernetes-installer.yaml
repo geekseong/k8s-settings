@@ -47,7 +47,7 @@
         echo -e "\n Set Containerd Default\n"
         containerd config default | tee /etc/containerd/config.toml
         sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
-
+        systemctl restart containerd
       register: result
     - debug:
         msg: "{{result.stdout}}"

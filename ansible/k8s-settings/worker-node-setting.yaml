@@ -1,0 +1,14 @@
+- name: Worker Nodes Join TO Control Plane
+  hosts: worker-nodes
+  tasks:
+    - name: JOIN CLUSTER...
+      vars:
+        ansible_become: true
+        ansible_become_method: sudo
+        ansible_become_password: 123
+      shell: |
+        echo "hello"
+        kubeadm join 192.168.122.145:6443 --token "{{token}}" --discovery-token-ca-cert-hash sha256:"{{hash}}"
+      register: result
+    - debug:
+        msg: "{{result.stdout}}"

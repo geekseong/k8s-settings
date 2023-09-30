@@ -1,0 +1,20 @@
+- name: Contorl Plane Setting 
+  hosts: control-plane
+  tasks:
+    - name: Set Up Clustering
+      vars:
+        ansible_become: true
+        ansible_become_method: sudo
+        ansible_become_password: 123
+      shell: |
+        echo -e "kubeadm init master IP {{ masterIp }}"
+        kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address="{{masterIp}}"
+
+        echo -e "\nchown For Cluster Setup\n"
+        mkdir -p $HOME/.kube
+        cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+        chown $(id -u):$(id -g) $HOME/.kube/config
+
+      register: result
+    - debug:
+        msg: "{{result.stdout}}"
