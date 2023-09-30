@@ -1,0 +1,53 @@
+- name: Kubernetes Installer
+  hosts: '{{ hosts }}'
+  tasks:
+    - name: KUBERNETES INSTALLER
+      vars:
+        ansible_become: true
+        ansible_become_method: sudo
+        ansible_become_password: 123
+      shell: |
+        echo -e "\n # Docker Change from cgroupfs to systemd\n"
+        cat <<EOF | sudo tee /etc/docker/daemon.json
+        {
+          "exec-opts": ["native.cgroupdriver=systemd"],
+          "log-driver": "json-file",
+          "log-opts": {
+          "max-size": "100m"
+          },
+        "storage-driver": "overlay2"
+        }
+        EOF
+
+        echo -e "\n # Docker Restart\n"
+        systemctl enable docker
+        systemctl deamon-reload 
+        systemctl restart docker
+
+        echo -e "\n # Check Cgroup]\n"
+        docker  info | grep -i cgroup
+
+        echo -e "\n# swap off\n"
+        swapoff -a
+        echo 0 > /proc/sys/vm/swappiness
+        sed -e '/swap/ s/^#*/#/' -i /etc/fstab
+        free -m
+
+        echo -e "\n Kubernetes GPG Download\n"
+        curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+        cat <<EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
+        deb https://apt.kubernetes.io/ kubernetes-xenial main
+        EOF
+
+        echo -e "\n Package Upadate\n"
+        apt-get update
+        apt-get install -y kubelet kubeadm kubectl
+        apt-mark hold kubelet kubeadm kubectl
+
+        echo -e "\n Set Containerd Default\n"
+        containerd config default | tee /etc/containerd/config.toml
+        sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
+
+      register: result
+    - debug:
+        msg: "{{result.stdout}}"
